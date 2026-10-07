@@ -1,0 +1,7 @@
+node_modules/
+public/game.js
+public/game.js.map
+.wrangler/
+.dev.vars
+*.log
+.DS_Store

@@ -1,0 +1,24 @@
+{
+  "name": "tweet-snake",
+  "version": "1.0.0",
+  "description": "Multiplayer snake that runs inside an X (Twitter) player card",
+  "scripts": {
+    "build:client": "esbuild src/client/main.ts --bundle --format=esm --target=es2022 --minify --sourcemap --outfile=public/game.js",
+    "dev": "npm run build:client && wrangler dev --ip 127.0.0.1 --port 8787",
+    "check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
+    "test:sim": "tsx scripts/sim-test.ts",
+    "test:e2e": "node scripts/e2e-smoke.mjs",
+    "test": "npm run check && npm run test:sim",
+    "deploy": "npm run build:client && wrangler deploy"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261007.1",
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.148.0"
+  },
+  "private": true
+}

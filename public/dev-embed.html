@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Embed preview</title>
+<style>
+  body { margin: 0; background: #000; color: #e7e9ea; font: 15px system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; }
+  .post { width: 560px; max-width: 100%; border: 1px solid #2f3336; border-radius: 16px; padding: 14px 16px; box-sizing: border-box; }
+  .who { font-weight: 700; } .who span { color: #71767b; font-weight: 400; }
+  iframe { width: 100%; aspect-ratio: 1; border: 1px solid #2f3336; border-radius: 16px; margin-top: 10px; display: block; }
+  .src { color: #71767b; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<!-- Local stand-in for how X shows the player card: a 1:1 iframe inside a post. -->
+<div class="post">
+  <div class="who">you <span>@you · now</span></div>
+  <div>come play snake inside this tweet 🐍</div>
+  <iframe src="/play/main" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
+  <div class="src">From localhost</div>
+</div>
+</body>
+</html>
