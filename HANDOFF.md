@@ -12,7 +12,9 @@ Live: https://tweet-snake.notashenone.workers.dev (Cloudflare Worker `tweet-snak
 
 ## Decisions
 - No accounts: players tap their name to set it (stored on their device). A leading @ is stripped and a small slur filter falls back to guest####.
-- Sponsors (owner's spec, 2026-10-07): Stripe Checkout at $500 / $300 / $100 with adjustable quantity. Spots last 24 h and the board ranks by total paid (same-name buys add up). **Test mode only for now**: the server refuses live keys unless `STRIPE_ALLOW_LIVE=1`.
+- Sponsors (owner's spec, 2026-10-07): Stripe Checkout at $500 / $300 / $100 with adjustable quantity. Spots last **7 days** and the board ranks by total paid (same-name buys add up).
+  - **LIVE since 2026-10-07** on the Ashen AI Stripe account (`acct_1Sv0yHLsHHGBvJwu`, statement "ASHEN AI"), approved by the owner.
+  - The key is a restricted live key: in `~/.config/tweet-snake/secrets.env`, and set on the Worker with `STRIPE_ALLOW_LIVE=1`. Without that flag the server refuses live keys.
   - Crypto bidding was built, then dropped at the owner's request. Don't re-add it unasked.
   - Admin: `PUT /api/admin/sponsors` (house entries), `DELETE /api/admin/sponsorships/:cs_id` (moderation).
   - Tested: `npm run test:unit` and `npm run test:sponsor` against `scripts/mock-stripe.mjs` (the latter failed once out of 5 runs, just after a cold restart; not reproduced since).

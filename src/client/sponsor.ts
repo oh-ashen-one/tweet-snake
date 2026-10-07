@@ -2,6 +2,7 @@
 // Checkout (opened in a new tab, since Checkout can't run inside the tweet
 // iframe). Quantity can be raised on Stripe's page to climb the board.
 
+import { spanText } from "../shared/format";
 import type { Sponsor } from "../shared/protocol";
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
@@ -25,7 +26,7 @@ export function parseSponsorConfig(raw: string | undefined): SponsorConfig | nul
   if (!raw) return null;
   const [t, h, mode] = raw.split(":");
   const tiers = t.split(",").map(Number).filter((n) => n > 0);
-  return tiers.length ? { tiers, hours: Number(h) || 24, test: mode === "test" } : null;
+  return tiers.length ? { tiers, hours: Number(h) || 168, test: mode === "test" } : null;
 }
 
 export class SponsorPanel {
@@ -73,7 +74,7 @@ export class SponsorPanel {
     const { tiers, hours, test } = this.cfg;
     const parts: HTMLElement[] = [this.header("Sponsor the leaderboard 👑")];
     parts.push(el("p", "bid-copy",
-      `Your name in the sponsor section of every player's leaderboard for ${hours} hours. Ranked by total paid. Add quantity at checkout to climb.`));
+      `Your name in the sponsor section of every player's leaderboard for ${spanText(hours)}. Ranked by total paid. Add quantity at checkout to climb.`));
 
     const ol = el("ol", "sp-list bid-board");
     if (list.length === 0) ol.append(el("li", "sp-empty", "No sponsors right now. The 👑 spot is open."));

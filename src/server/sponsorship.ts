@@ -1,9 +1,10 @@
 // Paid sponsor spots via Stripe Checkout. Three price points; buyers can raise
 // the quantity on Stripe's page, and the leaderboard ranks sponsors by total
-// paid within the active window (default 24 h). A payment is recorded either
+// paid within the active window (default 7 days). A payment is recorded either
 // by the signed webhook or when the buyer lands on the success page; both
 // paths look the session up and are idempotent by session id.
 
+import { spanText } from "../shared/format";
 import type { Sponsor } from "../shared/protocol";
 
 export const TIERS = [500, 300, 100] as const;
@@ -50,7 +51,7 @@ export function stripeKey(env: StripeEnv): string | null {
 
 export function sponsorHours(env: StripeEnv): number {
   const h = Number(env.SPONSOR_HOURS);
-  return Number.isFinite(h) && h > 0 ? h : 24;
+  return Number.isFinite(h) && h > 0 ? h : 168;
 }
 
 async function stripe<T>(env: StripeEnv, method: "GET" | "POST", path: string, form?: Record<string, string>): Promise<T> {
@@ -74,7 +75,7 @@ export function createCheckout(env: StripeEnv, origin: string, room: string, tie
     "line_items[0][price_data][unit_amount]": String(tier * 100),
     "line_items[0][price_data][product_data][name]": `SNEK sponsor spot · $${tier}`,
     "line_items[0][price_data][product_data][description]":
-      `Shows "${name}" in the sponsor section of the leaderboard for ${sponsorHours(env)} hours. Ranked by total paid; add quantity to climb.`,
+      `Shows "${name}" in the sponsor section of the leaderboard for ${spanText(sponsorHours(env))}. Ranked by total paid; add quantity to climb.`,
     "line_items[0][quantity]": "1",
     "line_items[0][adjustable_quantity][enabled]": "true",
     "line_items[0][adjustable_quantity][minimum]": "1",

@@ -29,7 +29,7 @@ async function buy(tier, name, qty, { pay = true, url } = {}) {
 }
 
 const pageHtml = await (await fetch(`${BASE}/r/${room}`)).text();
-check(/data-sponsor="500,300,100:24:test"/.test(pageHtml), "game page advertises the 3 tiers in test mode");
+check(/data-sponsor="500,300,100:168:test"/.test(pageHtml), "game page advertises the 3 tiers, 7-day spots, test mode");
 check((await co({ tier: 250, name: "x" })).status === 400, "unknown tier rejected");
 check((await co({ tier: 100, name: "" })).status === 400, "empty name rejected");
 check((await co({ tier: 100, name: "x", url: "http://nope" })).status === 400, "non-https link rejected");

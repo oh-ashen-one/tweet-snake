@@ -14,6 +14,7 @@
 import { Arena, type Env } from "./arena";
 import { Meta, cleanUrl } from "./meta";
 import { cleanDisplayName } from "../shared/names";
+import { spanText } from "../shared/format";
 import { TIERS, createCheckout, getSession, isSessionId, sponsorHours, stripeKey, verifyWebhook, type StripeSession } from "./sponsorship";
 import { TITLE } from "../shared/rules";
 
@@ -126,7 +127,7 @@ async function sponsored(url: URL, env: Env): Promise<Response> {
     const sp = r.sponsorship!;
     const rank = (r.board ?? []).findIndex((s) => s.name.toLowerCase() === sp.name.toLowerCase()) + 1;
     const where = rank === 1 ? "the 👑 top spot" : rank > 0 ? `#${rank}` : "the sponsor list";
-    return infoPage("You're on the board 🎉", `Thanks! ${sp.name} now holds ${where} on the SNEK leaderboard for the next ${sponsorHours(env)} hours.`, room);
+    return infoPage("You're on the board 🎉", `Thanks! ${sp.name} now holds ${where} on the SNEK leaderboard for the next ${spanText(sponsorHours(env))}.`, room);
   } catch (e) {
     console.error("sponsored lookup failed", e);
     return infoPage("One moment", "We couldn't confirm the payment right now. If you paid, your spot will appear shortly.", room);
