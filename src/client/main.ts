@@ -4,7 +4,6 @@
 import { SKINS, SPACING, WORLD_R, foodRadius, lengthOf, radiusOf, viewHalfOf } from "../shared/rules";
 import { Hud } from "./hud";
 import { Input } from "./input";
-import { signIn, storeToken, storedToken, tokenFromHash } from "./login";
 import { Net } from "./net";
 import { KIND_BODY, KIND_FLAT, KIND_FOOD, KIND_GLOW, Renderer } from "./render";
 import { applyTick, resetWorld, state, type CSnake } from "./state";
@@ -15,7 +14,6 @@ type RGB = [number, number, number];
 const body = document.body;
 const room = body.dataset.room || "main";
 const embed = body.dataset.embed === "1" || window.self !== window.top;
-const loginMode = body.dataset.login || "";
 
 function load(key: string): string | null {
   try {
@@ -32,9 +30,13 @@ function save(key: string, v: string): void {
   }
 }
 
-let token = tokenFromHash();
-if (token) storeToken(token);
-else token = storedToken();
+// "Full screen" passes the chosen name along in the URL hash.
+const hashName = location.hash.match(/(?:^#|&)name=([^&]+)/);
+if (hashName) {
+  save("snek.name", decodeURIComponent(hashName[1]));
+  history.replaceState(null, "", location.pathname + location.search);
+}
+let myChosenName = load("snek.name") || "";
 let guest = load("snek.guest");
 if (!guest) {
   guest = String(1000 + Math.floor(Math.random() * 9000));
@@ -62,7 +64,7 @@ try {
 
 const hud = new Hud(hudc);
 const input = new Input(glc);
-const ui = new UI(uiRoot, { login: loginMode, embed, sponsorUrl: body.dataset.sponsorUrl || "", skin });
+const ui = new UI(uiRoot, { embed, sponsorUrl: body.dataset.sponsorUrl || "", skin, customName: !!myChosenName });
 ui.shareUrl = `${location.origin}/r/${room}`;
 
 const net = new Net(room);
@@ -72,7 +74,7 @@ let myName = "";
 let W = 1, H = 1, DPR = 1;
 
 function join(): void {
-  net.send({ t: "join", token, guest, skin: ui.skin, aspect: W / H });
+  net.send({ t: "join", name: myChosenName, guest, skin: ui.skin, aspect: W / H });
   wantJoin = false;
 }
 
@@ -100,7 +102,7 @@ net.onJson = (m) => {
       break;
     case "you":
       myName = m.name;
-      ui.setIdentity(m.name, m.pfp, m.verified);
+      ui.setName(m.name);
       break;
     case "lb":
       ui.setBoard(m);
@@ -131,19 +133,13 @@ ui.onRespawn = () => {
 };
 ui.onSkin = (s) => save("snek.skin", String(s));
 ui.onBoost = (on) => (input.buttonBoost = on);
-ui.onSignIn = () =>
-  signIn(
-    loginMode,
-    (t) => {
-      token = t;
-      storeToken(t);
-      net.send({ t: "auth", token: t });
-      ui.toast("Signed in");
-    },
-    (msg) => ui.toast(msg),
-  );
+ui.onName = (name) => {
+  myChosenName = name;
+  save("snek.name", name);
+  net.send({ t: "name", name, guest });
+};
 ui.onNewTab = () => {
-  const hash = token ? `#tok=${encodeURIComponent(token)}` : "";
+  const hash = myChosenName ? `#name=${encodeURIComponent(myChosenName)}` : "";
   window.open(`${location.origin}/r/${room}${hash}`, "_blank", "noopener");
 };
 
@@ -197,6 +193,7 @@ function drawSnake(s: CSnake, alpha: number, isMe: boolean): void {
   const L = lengthOf(s.mass);
   const stride = r > 16 ? 2 : 1;
   const op = s.shield ? 0.45 + 0.25 * Math.sin(performance.now() * 0.012) : 1;
+  if (isMe) renderer.push(hx, hy, r * 4.5, KIND_GLOW, 1, 1, 1, 0.16);
 
   if (s.boost) {
     for (let i = n - 1; i >= 0; i -= 3) {
@@ -248,7 +245,7 @@ function draw(): void {
 
   input.update(dt);
   if (playing && input.touched) net.input(input.angle, input.boost, now);
-  ui.showHint(playing && !input.touched);
+  ui.showHint(playing && !input.touched && !ui.editing);
 
   const alpha = state.lastAt ? Math.min(1, (now - state.lastAt) / state.interval) : 1;
   heads.clear();

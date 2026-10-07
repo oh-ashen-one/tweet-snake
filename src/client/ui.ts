@@ -1,9 +1,9 @@
-// DOM overlay: identity chip + sign-in, collapsible leaderboard with sponsor
-// slots, death card, boost button and toasts. User-supplied strings only ever
-// go through textContent.
+// DOM overlay: name chip + name editor, colour button, collapsible
+// leaderboard with sponsor slots, death card, boost button, hints and toasts.
+// User-supplied strings only ever go through textContent.
 
 import type { LeaderEntry, Sponsor } from "../shared/protocol";
-import { SKINS, TITLE } from "../shared/rules";
+import { MAX_NAME, SKINS, TITLE } from "../shared/rules";
 
 type Board = { top: LeaderEntry[]; rank: number; count: number; humans: number };
 
@@ -22,35 +22,24 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 
-export function pfpUrl(path: string): string {
-  return `/api/pfp?p=${encodeURIComponent(path)}`;
-}
-
 function rgb(c: [number, number, number]): string {
   return `rgb(${c.map((v) => Math.round(v * 255)).join(",")})`;
 }
 
-function avatar(name: string, pfp: string, skin: number): HTMLElement {
+function avatar(name: string, skin: number): HTMLElement {
   const a = el("span", "av");
-  if (pfp) {
-    const img = el("img");
-    img.src = pfpUrl(pfp);
-    img.alt = "";
-    img.referrerPolicy = "no-referrer";
-    img.onerror = () => img.remove();
-    a.append(img);
-  } else {
-    const [c1, c2] = SKINS[skin % SKINS.length];
-    a.style.background = `linear-gradient(135deg, ${rgb(c1)}, ${rgb(c2)})`;
-    a.textContent = name.replace(/^@/, "").slice(0, 1).toUpperCase();
-  }
+  const [c1, c2] = SKINS[skin % SKINS.length];
+  a.style.background = `linear-gradient(135deg, ${rgb(c1)}, ${rgb(c2)})`;
+  a.textContent = name.slice(0, 1).toUpperCase();
   return a;
 }
 
 export class UI {
   root: HTMLElement;
   private chip = el("button", "chip");
-  private signin = el("button", "btn xbtn", "Sign in with 𝕏");
+  private colorBtn = el("button", "dot");
+  private editor = el("form", "editor");
+  private nameInput = el("input");
   private lb = el("div", "lb collapsed");
   private lbHead = el("button", "lb-head");
   private lbBody = el("div", "lb-body");
@@ -61,41 +50,65 @@ export class UI {
   private sponsors: Sponsor[] = [];
   private board: Board = { top: [], rank: 0, count: 0, humans: 0 };
   private myName = "";
-  private myPfp = "";
   private deathAt = 0;
+  private sponsorUrl: string;
+  private customName: boolean;
   skin = 0;
 
-  onSignIn: () => void = () => {};
+  onName: (name: string) => void = () => {};
   onRespawn: () => void = () => {};
   onNewTab: () => void = () => {};
   onSkin: (skin: number) => void = () => {};
+  onBoost: (on: boolean) => void = () => {};
   shareUrl = "";
 
-  constructor(root: HTMLElement, opts: { login: string; embed: boolean; sponsorUrl: string; skin: number }) {
+  constructor(root: HTMLElement, opts: { embed: boolean; sponsorUrl: string; skin: number; customName: boolean }) {
     this.root = root;
     this.skin = opts.skin;
+    this.sponsorUrl = opts.sponsorUrl;
+    this.customName = opts.customName;
+
     const tl = el("div", "tl");
-    this.chip.title = "Tap to change colour";
-    this.chip.onclick = () => {
+    this.chip.title = "Set your name";
+    this.chip.onclick = () => this.openEditor();
+    this.colorBtn.title = "Change colour";
+    this.colorBtn.onclick = () => {
       this.skin = (this.skin + 1) % SKINS.length;
       this.onSkin(this.skin);
       this.renderChip();
-      this.toast("New colour next life");
     };
-    tl.append(this.chip);
-    if (opts.login) {
-      this.signin.onclick = () => this.onSignIn();
-      tl.append(this.signin);
-    }
+    tl.append(this.chip, this.colorBtn);
     if (opts.embed) {
       const nt = el("button", "btn ghost", "↗ Full screen");
       nt.onclick = () => this.onNewTab();
       tl.append(nt);
     }
 
+    this.nameInput.maxLength = MAX_NAME;
+    this.nameInput.placeholder = "your name";
+    this.nameInput.autocomplete = "off";
+    this.nameInput.spellcheck = false;
+    this.nameInput.enterKeyHint = "done";
+    const save = el("button", "btn save", "Save");
+    save.type = "submit";
+    this.editor.append(this.nameInput, save);
+    this.editor.hidden = true;
+    this.editor.onsubmit = (e) => {
+      e.preventDefault();
+      const name = this.nameInput.value.trim();
+      this.editor.hidden = true;
+      this.nameInput.blur();
+      if (name) {
+        this.customName = true;
+        this.onName(name);
+      }
+    };
+    this.nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this.editor.hidden = true;
+    });
+
     this.lbHead.onclick = () => this.lb.classList.toggle("collapsed");
     this.lb.append(this.lbHead, this.lbBody);
-    this.sponsorUrl = opts.sponsorUrl;
 
     this.boostBtn.hidden = true;
     const press = (on: boolean) => (e: Event) => {
@@ -111,25 +124,31 @@ export class UI {
 
     this.death.hidden = true;
     this.death.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest("a,button")) return;
+      if ((e.target as HTMLElement).closest("a,button,input,form")) return;
       if (performance.now() - this.deathAt > 700) this.onRespawn();
     });
 
     const coarse = matchMedia("(pointer: coarse)").matches;
     this.hint.textContent = coarse ? "Drag anywhere to steer · 2nd finger boosts" : "Move your mouse to steer · hold click to boost";
     this.hint.hidden = true;
-    root.append(tl, this.lb, this.boostBtn, this.death, this.toastEl, this.hint);
+
+    root.append(tl, this.editor, this.lb, this.boostBtn, this.death, this.toastEl, this.hint);
     this.renderChip();
     this.renderBoard();
   }
 
-  private sponsorUrl: string;
-  onBoost: (on: boolean) => void = () => {};
+  openEditor(): void {
+    this.nameInput.value = this.customName ? this.myName : "";
+    this.editor.hidden = false;
+    this.nameInput.focus();
+  }
 
-  setIdentity(name: string, pfp: string, verified: boolean): void {
+  get editing(): boolean {
+    return !this.editor.hidden;
+  }
+
+  setName(name: string): void {
     this.myName = name;
-    this.myPfp = pfp;
-    this.signin.hidden = verified;
     this.renderChip();
   }
 
@@ -143,7 +162,13 @@ export class UI {
   }
 
   private renderChip(): void {
-    this.chip.replaceChildren(avatar(this.myName || "?", this.myPfp, this.skin), el("span", "nm", this.myName || "joining…"));
+    const label = el("span", "nm", this.myName || "joining…");
+    const parts: HTMLElement[] = [avatar(this.myName || "?", this.skin), label];
+    if (!this.customName) parts.push(el("span", "set", "Set name ✎"));
+    else parts.push(el("span", "pen", "✎"));
+    this.chip.replaceChildren(...parts);
+    const [c1, c2] = SKINS[this.skin % SKINS.length];
+    this.colorBtn.style.background = `linear-gradient(135deg, ${rgb(c1)}, ${rgb(c2)})`;
   }
 
   setSponsors(list: Sponsor[]): void {
@@ -196,12 +221,12 @@ export class UI {
     const top = this.board.top.slice(0, full ? 10 : 5);
     top.forEach((e, i) => {
       const li = el("li", e.n === this.myName && this.board.rank === i + 1 ? "me" : "");
-      li.append(el("span", "rk", String(i + 1)), avatar(e.n, e.p, e.s), el("span", "nm", e.n), el("span", "ms", e.m.toLocaleString()));
+      li.append(el("span", "rk", String(i + 1)), avatar(e.n, e.s), el("span", "nm", e.n), el("span", "ms", e.m.toLocaleString()));
       ol.append(li);
     });
     if (this.board.rank > top.length) {
       const li = el("li", "me");
-      li.append(el("span", "rk", String(this.board.rank)), avatar(this.myName, this.myPfp, this.skin), el("span", "nm", this.myName), el("span", "ms", ""));
+      li.append(el("span", "rk", String(this.board.rank)), avatar(this.myName, this.skin), el("span", "nm", this.myName), el("span", "ms", ""));
       ol.append(li);
     }
     wrap.append(ol);
@@ -254,9 +279,11 @@ export class UI {
     share.href = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(this.shareUrl)}`;
     share.target = "_blank";
     share.rel = "noopener";
+    const rename = el("button", "linkish", this.customName ? `Playing as ${this.myName} · change name` : "Set your name");
+    rename.onclick = () => this.openEditor();
     const row = el("div", "row");
     row.append(play, share);
-    card.append(title, stats, this.boardContent(true), row, el("div", "hint", "tap anywhere to play again"));
+    card.append(title, stats, this.boardContent(true), row, rename, el("div", "hint", "tap anywhere to play again"));
     this.death.replaceChildren(card);
     this.death.hidden = false;
   }

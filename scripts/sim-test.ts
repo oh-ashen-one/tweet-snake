@@ -6,7 +6,7 @@
 
 import { MSG_INPUT, packAngle, type ServerJson } from "../src/shared/protocol";
 import { DT, foodCellOf, radiusOf } from "../src/shared/rules";
-import { World, guestIdentity } from "../src/server/world";
+import { World, playerName } from "../src/server/world";
 import { applyTick, state } from "../src/client/state";
 
 const SECONDS = Number(process.env.SECONDS || 120);
@@ -22,8 +22,15 @@ const a = world.addClient((d) => {
   }
 });
 const b = world.addClient(() => {});
-world.join(a, guestIdentity("1234"), 3, 1);
-world.join(b, { name: "@tester", pfp: "", verified: true }, 5, 16 / 9);
+world.join(a, playerName("", "1234"), 3, 1);
+world.join(b, playerName("@tester", "5678"), 5, 16 / 9);
+const nameChecks = [
+  playerName("@tester", "5678") === "tester",
+  playerName("", "1234") === "guest1234",
+  playerName("   ", "1234") === "guest1234",
+  playerName("a".repeat(40), "1234").length === 16,
+  playerName("<b>x</b>", "1234") === "bx/b",
+];
 
 function steer(cid: number, angle: number, boost: boolean) {
   const buf = new ArrayBuffer(4);
@@ -57,7 +64,7 @@ for (let t = 1; t <= ticks; t++) {
   for (const c of [a, b]) {
     if (!world.clients.get(c)!.snake) {
       if (c === a) respawnsA++;
-      world.join(c, guestIdentity("1234"), 3, 1);
+      world.join(c, playerName("", "1234"), 3, 1);
     }
   }
   maxSnakes = Math.max(maxSnakes, world.snakes.size);
@@ -110,6 +117,7 @@ const report = {
 console.log(JSON.stringify(report, null, 2));
 
 const fails: string[] = [];
+if (nameChecks.includes(false)) fails.push(`name cleaning: ${JSON.stringify(nameChecks)}`);
 if (p99 > 8) fails.push(`tick p99 ${p99.toFixed(2)}ms > 8ms`);
 if (maxSnakes < 10) fails.push("bots did not populate the arena");
 if (kills < 3) fails.push("almost no deaths: collisions may be broken");

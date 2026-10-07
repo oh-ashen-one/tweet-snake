@@ -1,10 +1,7 @@
-// Single global Durable Object for state shared across rooms: the sponsor list
-// and short-lived login hand-offs (nonce -> token).
+// Single global Durable Object for state shared across rooms (the sponsor list).
 
 import { DurableObject } from "cloudflare:workers";
 import type { Sponsor } from "../shared/protocol";
-
-const CLAIM_TTL_MS = 5 * 60e3;
 
 export function cleanSponsors(raw: unknown): Sponsor[] | null {
   if (!Array.isArray(raw) || raw.length > 20) return null;
@@ -29,8 +26,6 @@ export function cleanSponsors(raw: unknown): Sponsor[] | null {
 }
 
 export class Meta extends DurableObject {
-  private claims = new Map<string, { token: string; at: number }>();
-
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
 
@@ -42,21 +37,6 @@ export class Meta extends DurableObject {
         return Response.json(list);
       }
       return Response.json((await this.ctx.storage.get<Sponsor[]>("sponsors")) ?? []);
-    }
-
-    if (url.pathname === "/claim") {
-      const nonce = url.searchParams.get("n") || "";
-      const now = Date.now();
-      for (const [k, v] of this.claims) if (now - v.at > CLAIM_TTL_MS) this.claims.delete(k);
-      if (req.method === "PUT") {
-        const { token } = (await req.json()) as { token: string };
-        this.claims.set(nonce, { token, at: now });
-        return new Response("ok");
-      }
-      const c = this.claims.get(nonce);
-      if (!c) return new Response(null, { status: 204 });
-      this.claims.delete(nonce);
-      return Response.json({ token: c.token });
     }
 
     return new Response("not found", { status: 404 });

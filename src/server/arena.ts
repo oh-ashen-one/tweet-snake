@@ -4,11 +4,10 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Sponsor } from "../shared/protocol";
 import { TICK_MS } from "../shared/rules";
-import { verifyToken, type AuthEnv } from "./auth";
 import type { Meta } from "./meta";
-import { World, guestIdentity } from "./world";
+import { World, playerName } from "./world";
 
-export interface Env extends AuthEnv {
+export interface Env {
   ARENA: DurableObjectNamespace<Arena>;
   META: DurableObjectNamespace<Meta>;
   ASSETS: Fetcher;
@@ -45,26 +44,13 @@ export class Arena extends DurableObject<Env> {
       }
     });
     server.addEventListener("message", (e) => {
-      const data = e.data as string | ArrayBuffer;
-      if (typeof data === "string" && data.startsWith("{")) {
-        let m: { t?: string; token?: unknown; guest?: unknown; skin?: unknown; aspect?: unknown };
-        try {
-          m = JSON.parse(data);
-        } catch {
-          return;
-        }
-        if (m.t === "join") {
-          verifyToken(this.env.SESSION_SECRET, m.token).then((id) =>
-            world.join(cid, id ?? guestIdentity(m.guest), m.skin, m.aspect));
-          return;
-        }
-        if (m.t === "auth") {
-          verifyToken(this.env.SESSION_SECRET, m.token).then((id) => id && world.rename(cid, id));
-          return;
-        }
+      try {
+        this.onSocketMessage(world, cid, e.data);
+      } catch (err) {
+        console.error("message handler failed", err);
       }
-      world.onMessage(cid, data);
     });
+
     const drop = () => {
       world.removeClient(cid);
       if (world.clients.size === 0) this.stop();
@@ -74,6 +60,28 @@ export class Arena extends DurableObject<Env> {
     this.start();
     if (Date.now() - this.sponsorsAt > 5000) this.refreshSponsors();
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  // Binary frames can arrive as ArrayBuffer or a typed-array view depending on
+  // the runtime; normalise before the world reads them.
+  private onSocketMessage(world: World, cid: number, raw: unknown): void {
+    let data: string | ArrayBuffer;
+    if (typeof raw === "string") data = raw;
+    else if (raw instanceof ArrayBuffer) data = raw;
+    else if (ArrayBuffer.isView(raw)) data = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength).slice().buffer;
+    else return;
+
+    if (typeof data === "string" && data.startsWith("{")) {
+      let m: { t?: string; name?: unknown; guest?: unknown; skin?: unknown; aspect?: unknown };
+      try {
+        m = JSON.parse(data);
+      } catch {
+        return;
+      }
+      if (m.t === "join") return world.join(cid, playerName(m.name, m.guest), m.skin, m.aspect);
+      if (m.t === "name") return world.rename(cid, playerName(m.name, m.guest));
+    }
+    world.onMessage(cid, data);
   }
 
   private start(): void {
@@ -96,7 +104,11 @@ export class Arena extends DurableObject<Env> {
     this.last = now;
     let steps = 0;
     while (this.acc >= TICK_MS && steps < 3) {
-      this.world?.step();
+      try {
+        this.world?.step();
+      } catch (err) {
+        console.error("tick failed", err);
+      }
       this.acc -= TICK_MS;
       steps++;
     }

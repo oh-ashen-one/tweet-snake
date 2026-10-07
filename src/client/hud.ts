@@ -1,30 +1,15 @@
-// Canvas 2D overlay: names + pfps over heads, score, minimap, kill feed and
+// Canvas 2D overlay: names over heads (with a YOU tag), score, minimap, kill feed and
 // the touch joystick.
 
 import type { LeaderEntry } from "../shared/protocol";
 import { WORLD_R, radiusOf } from "../shared/rules";
 import type { Joy } from "./input";
 import type { CSnake } from "./state";
-import { pfpUrl } from "./ui";
 
 interface Feed {
   text: string;
   mine: boolean;
   t0: number;
-}
-
-const pfps = new Map<string, HTMLImageElement | null>();
-
-function pfpImage(path: string): HTMLImageElement | null {
-  if (!path) return null;
-  const hit = pfps.get(path);
-  if (hit !== undefined) return hit && hit.complete && hit.naturalWidth ? hit : null;
-  const img = new Image();
-  img.decoding = "async";
-  img.onerror = () => pfps.set(path, null);
-  img.src = pfpUrl(path);
-  pfps.set(path, img);
-  return null;
 }
 
 export class Hud {
@@ -85,30 +70,29 @@ export class Hud {
       const y = sy - r - 14 * u;
       const fs = Math.round((s === o.me ? 13 : 12) * u);
       c.font = `700 ${fs}px ui-rounded, "SF Pro Rounded", system-ui, sans-serif`;
-      const img = s.verified ? pfpImage(s.pfp) : null;
-      const tw = c.measureText(s.name).width;
-      const pr = img ? 8 * u : 0;
-      const total = tw + (img ? pr * 2 + 4 : 0);
-      const x0 = sx - total / 2;
-      if (img) {
-        c.save();
-        c.beginPath();
-        c.arc(x0 + pr, y, pr, 0, Math.PI * 2);
-        c.clip();
-        c.drawImage(img, x0 + pr - pr, y - pr, pr * 2, pr * 2);
-        c.restore();
-        c.strokeStyle = "rgba(255,255,255,.85)";
-        c.lineWidth = 1.5;
-        c.beginPath();
-        c.arc(x0 + pr, y, pr, 0, Math.PI * 2);
-        c.stroke();
-      }
-      const tx = x0 + (img ? pr * 2 + 4 : 0) + tw / 2;
+      const isMe = s === o.me;
       c.lineWidth = 3;
       c.strokeStyle = "rgba(0,0,0,.55)";
-      c.strokeText(s.name, tx, y);
-      c.fillStyle = s === o.me ? "#fff" : s.verified ? "#e8f3ff" : "rgba(255,255,255,.78)";
-      c.fillText(s.name, tx, y);
+      c.strokeText(s.name, sx, y);
+      c.fillStyle = isMe ? "#fff" : "rgba(255,255,255,.78)";
+      c.fillText(s.name, sx, y);
+      if (isMe) {
+        // "YOU" tag with a little pointer so your snake is never ambiguous.
+        const ty = y - fs - 6 * u;
+        c.font = `800 ${Math.round(10 * u)}px ui-rounded, "SF Pro Rounded", system-ui, sans-serif`;
+        const tw = c.measureText("YOU").width + 10 * u;
+        c.fillStyle = "#ffd34d";
+        c.beginPath();
+        c.roundRect(sx - tw / 2, ty - 7 * u, tw, 14 * u, 7 * u);
+        c.fill();
+        c.beginPath();
+        c.moveTo(sx - 4 * u, ty + 7 * u);
+        c.lineTo(sx + 4 * u, ty + 7 * u);
+        c.lineTo(sx, ty + 11 * u);
+        c.fill();
+        c.fillStyle = "#1a1300";
+        c.fillText("YOU", sx, ty + 0.5);
+      }
     }
 
     // Score.

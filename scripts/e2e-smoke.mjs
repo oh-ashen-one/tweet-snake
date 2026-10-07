@@ -15,11 +15,12 @@ const check = (ok, msg) => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function client(token, guest) {
+function client(name, guest) {
   const wsUrl = BASE.replace(/^http/, "ws") + `/ws/${ROOM}`;
   const ws = new WebSocket(wsUrl);
   ws.binaryType = "arraybuffer";
-  const c = { ws, json: [], ticks: 0, bytes: 0, myIds: new Set() };
+  const c = { ws, json: [], ticks: 0, bytes: 0, myIds: new Set(), closed: null };
+  ws.onclose = (e) => (c.closed = e.code);
   ws.onmessage = (e) => {
     if (typeof e.data === "string") {
       if (e.data !== "pong") c.json.push(JSON.parse(e.data));
@@ -33,7 +34,7 @@ function client(token, guest) {
   };
   c.ready = new Promise((res, rej) => {
     ws.onopen = () => {
-      ws.send(JSON.stringify({ t: "join", token, guest, skin: 2, aspect: 1 }));
+      ws.send(JSON.stringify({ t: "join", name, guest, skin: 2, aspect: 1 }));
       res();
     };
     ws.onerror = rej;
@@ -47,25 +48,31 @@ check(card.includes(`/play/${ROOM}"`), "player url points at /play/<room>");
 const play = await fetch(`${BASE}/play/${ROOM}`);
 check((play.headers.get("content-security-policy") || "").includes("https://x.com"), "frame-ancestors allows x.com");
 
-const nonce = "e2enonce" + Math.random().toString(36).slice(2, 14);
-const login = await fetch(`${BASE}/auth/dev?n=${nonce}&h=alice`);
-check(login.ok, "dev login page");
-const claim = await fetch(`${BASE}/auth/claim?n=${nonce}`);
-const token = claim.status === 200 ? (await claim.json()).token : null;
-check(!!token, "nonce claim returns token");
-const again = await fetch(`${BASE}/auth/claim?n=${nonce}`);
-check(again.status === 204, "claim is single-use");
-
-const alice = client(token, "1111");
-const guest = client(null, "2222");
-const forged = client(token ? token.slice(0, -4) + "AAAA" : "x.y", "3333");
+const alice = client("alice", "1111");
+const guest = client("", "2222");
+const forged = client("@elonmusk", "3333");
 await Promise.all([alice.ready, guest.ready, forged.ready]);
+// Steer like a real player: binary input every 50ms (this once crashed rooms).
+let k = 0;
+const steer = setInterval(() => {
+  const b = new ArrayBuffer(4);
+  const dv = new DataView(b);
+  dv.setUint8(0, 1);
+  dv.setUint16(1, (k++ * 700) & 0xffff, true);
+  dv.setUint8(3, k % 20 < 5 ? 1 : 0);
+  alice.ws.send(b);
+}, 50);
 await sleep(3000);
+clearInterval(steer);
 
 const you = (c) => c.json.find((m) => m.t === "you");
-check(you(alice)?.name === "@alice" && you(alice)?.verified === true, "signed-in player is @alice (verified)");
-check(you(guest)?.name === "guest2222" && you(guest)?.verified === false, "guest gets guest2222");
-check(you(forged)?.verified === false, "forged token falls back to guest");
+check(you(alice)?.name === "alice", "chosen name is used");
+check(you(guest)?.name === "guest2222", "no name gives guest2222");
+check(you(forged)?.name === "elonmusk", "leading @ is stripped (no fake handles)");
+check(alice.closed === null && guest.closed === null, "steering input keeps the room alive");
+alice.ws.send(JSON.stringify({ t: "name", name: "alice2", guest: "1111" }));
+await sleep(300);
+check(alice.json.filter((m) => m.t === "you").pop()?.name === "alice2", "rename mid-game works");
 check(alice.ticks >= 45 && alice.ticks <= 75, `tick rate ~20/s (${alice.ticks} in 3s)`);
 check(alice.json.some((m) => m.t === "lb" && m.top.length > 0), "leaderboard received");
 check(alice.json.some((m) => m.t === "hello"), "hello received");
@@ -89,7 +96,7 @@ check(list[0]?.name === "Big Co", "highest payer takes the top sponsor slot");
 // Rooms re-read sponsors on connect at most every 5s (and every 30s while live).
 for (const c of [alice, guest, forged]) c.ws.close();
 await sleep(5500);
-const late = client(null, "4444");
+const late = client("", "4444");
 await late.ready;
 await sleep(1500);
 const got = late.json.filter((m) => m.t === "hello" || m.t === "sponsors").pop();

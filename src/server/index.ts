@@ -6,13 +6,8 @@
 //   /api/room/:room     live counts
 //   /api/sponsors       current sponsor list
 //   /api/admin/sponsors PUT the sponsor list (Bearer ADMIN_TOKEN)
-//   /api/pfp?p=         cached proxy for X profile pictures
-//   /auth/x/start       Sign in with X popup entry; /auth/x/callback finishes it
-//   /auth/claim?n=      iframe polls here for the token its popup minted
-//   /auth/dev?h=        local-only fake login (DEV_LOGIN=1)
 
 import { Arena, type Env } from "./arena";
-import { devLogin, finishLogin, finishPage, pfpUpstream, startLogin } from "./auth";
 import { Meta } from "./meta";
 import { TITLE } from "../shared/rules";
 
@@ -32,7 +27,6 @@ function page(origin: string, room: string, embed: boolean, env: Env): string {
   const playerUrl = `${origin}/play/${room}`;
   const title = room === "main" ? TITLE : `${TITLE} · ${room}`;
   const desc = "Live multiplayer snake inside the tweet. Tap and you're in, playing everyone else right now.";
-  const login = env.X_CLIENT_ID && env.SESSION_SECRET ? "x" : env.DEV_LOGIN === "1" ? "dev" : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -56,7 +50,7 @@ function page(origin: string, room: string, embed: boolean, env: Env): string {
 <link rel="icon" href="/favicon.svg">
 <link rel="stylesheet" href="/style.css">
 </head>
-<body data-room="${esc(room)}" data-embed="${embed ? 1 : 0}" data-login="${login}" data-sponsor-url="${esc(env.SPONSOR_URL || "")}">
+<body data-room="${esc(room)}" data-embed="${embed ? 1 : 0}" data-sponsor-url="${esc(env.SPONSOR_URL || "")}">
 <canvas id="gl"></canvas>
 <canvas id="hud"></canvas>
 <div id="ui"></div>
@@ -79,40 +73,8 @@ function meta(env: Env) {
   return env.META.get(env.META.idFromName("global"));
 }
 
-async function claimPage(result: Awaited<ReturnType<typeof finishLogin>>, origin: string, env: Env): Promise<Response> {
-  if (typeof result !== "string" && result.nonce) {
-    await meta(env).fetch(`https://meta/claim?n=${encodeURIComponent(result.nonce)}`, {
-      method: "PUT",
-      body: JSON.stringify({ token: result.token }),
-    });
-  }
-  return finishPage(result, origin);
-}
-
-async function proxyPfp(url: URL, ctx: ExecutionContext): Promise<Response> {
-  const upstream = pfpUpstream(url.searchParams.get("p") || "");
-  if (!upstream) return new Response("bad pfp", { status: 400 });
-  const cache = (caches as unknown as { default: Cache }).default;
-  const key = new Request(url.toString());
-  const hit = await cache.match(key);
-  if (hit) return hit;
-  const res = await fetch(upstream);
-  if (!res.ok || !(res.headers.get("content-type") || "").startsWith("image/")) {
-    return new Response("pfp unavailable", { status: 404 });
-  }
-  const out = new Response(res.body, {
-    headers: {
-      "content-type": res.headers.get("content-type")!,
-      "cache-control": "public, max-age=86400",
-      "access-control-allow-origin": "*",
-    },
-  });
-  ctx.waitUntil(cache.put(key, out.clone()));
-  return out;
-}
-
 export default {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     const parts = url.pathname.split("/").filter(Boolean);
     const [head, second] = parts;
@@ -136,19 +98,6 @@ export default {
           return new Response("unauthorized", { status: 401 });
         }
         return meta(env).fetch("https://meta/sponsors", { method: "PUT", body: await req.text() });
-      }
-      if (second === "pfp") return proxyPfp(url, ctx);
-      return new Response("not found", { status: 404 });
-    }
-
-    if (head === "auth") {
-      if (second === "x" && parts[2] === "start") return startLogin(req, env);
-      if (second === "x" && parts[2] === "callback") return claimPage(await finishLogin(req, env), url.origin, env);
-      if (second === "dev") return claimPage(await devLogin(req, env), url.origin, env);
-      if (second === "claim") {
-        const n = url.searchParams.get("n") || "";
-        if (!/^[A-Za-z0-9_-]{16,64}$/.test(n)) return new Response("bad nonce", { status: 400 });
-        return meta(env).fetch(`https://meta/claim?n=${encodeURIComponent(n)}`);
       }
       return new Response("not found", { status: 404 });
     }

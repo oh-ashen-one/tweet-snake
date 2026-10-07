@@ -1,7 +1,3 @@
 # Local development only. Copy to .dev.vars (gitignored).
-SESSION_SECRET=change-me-local-only
-DEV_LOGIN=1
 ADMIN_TOKEN=local-admin
-# X_CLIENT_ID=
-# X_CLIENT_SECRET=
 # SPONSOR_URL=

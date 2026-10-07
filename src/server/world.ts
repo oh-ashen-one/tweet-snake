@@ -8,8 +8,8 @@ import {
   viewHalfOf,
 } from "../shared/rules";
 import {
-  FLAG_BOOST, FLAG_BOT, FLAG_SHIELD, FLAG_VERIFIED, MSG_INPUT, MSG_TICK, Writer, unpackAngle,
-  type Identity, type LeaderEntry, type ServerJson, type Sponsor,
+  FLAG_BOOST, FLAG_BOT, FLAG_SHIELD, MSG_INPUT, MSG_TICK, Writer, unpackAngle,
+  type LeaderEntry, type ServerJson, type Sponsor,
 } from "../shared/protocol";
 import { BOT_NAMES, makeBrain, thinkBot, type BotBrain } from "./bots";
 
@@ -30,8 +30,6 @@ export interface Food {
 export interface Snake {
   id: number;
   name: string;
-  pfp: string;
-  verified: boolean;
   skin: number;
   bot: boolean;
   cid: number;
@@ -109,15 +107,18 @@ export class Grid {
   }
 }
 
-export function cleanName(raw: unknown): string {
-  const s = String(raw ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").trim();
-  return [...s].slice(0, MAX_NAME).join("") || "guest";
-}
+// Very small blocklist for the worst slurs; anything matching becomes a guest name.
+const BLOCKED = /n[i1!]gg|f[a@4]gg?[o0e]t|r[e3]t[a@4]rd|k[i1]ke|tr[a@4]nny|ch[i1]nk|sp[i1]c\b|c[o0]{2}n\b|wetback|n[a@4]z[i1]|h[i1]tler|rap(e|ist)/i;
 
-export function guestIdentity(raw: unknown): Identity {
-  const digits = String(raw ?? "").replace(/\D/g, "").slice(0, 4);
-  const tag = digits.length === 4 ? digits : String(1000 + Math.floor(Math.random() * 9000));
-  return { name: `guest${tag}`, pfp: "", verified: false };
+// A player's chosen display name, or guest#### when empty or blocked. A
+// leading @ is stripped so nobody can pose as an X account.
+export function playerName(raw: unknown, guest: unknown): string {
+  const digits = String(guest ?? "").replace(/\D/g, "").slice(0, 4);
+  const fallback = `guest${digits.length === 4 ? digits : 1000 + Math.floor(Math.random() * 9000)}`;
+  const s = String(raw ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/^@+/, "").replace(/\s+/g, " ").trim();
+  const name = [...s].slice(0, MAX_NAME).join("").trim();
+  if (!name || BLOCKED.test(name.replace(/[\s._-]/g, ""))) return fallback;
+  return name;
 }
 
 function clampAspect(a: unknown): number {
@@ -185,17 +186,17 @@ export class World {
       if (m.t === "view") c.aspect = clampAspect(m.aspect);
       return;
     }
-    if (data.byteLength < 4) return;
-    const dv = new DataView(data);
-    if (dv.getUint8(0) === MSG_INPUT && c.snake) {
+    const b = new Uint8Array(data);
+    if (b.length < 4) return;
+    if (b[0] === MSG_INPUT && c.snake) {
       c.snake.ai = null;
-      c.snake.target = unpackAngle(dv.getUint16(1, true));
-      c.snake.boost = dv.getUint8(3) === 1;
+      c.snake.target = unpackAngle(b[1] | (b[2] << 8));
+      c.snake.boost = b[3] === 1;
     }
   }
 
-  // Identity is resolved (and verified) by the caller; the world trusts it.
-  join(cid: number, ident: Identity, skinRaw: unknown, aspect: unknown): void {
+  // The name is already cleaned by playerName().
+  join(cid: number, name: string, skinRaw: unknown, aspect: unknown): void {
     const c = this.clients.get(cid);
     if (!c || c.snake) return;
     if (this.humansPlaying >= MAX_HUMANS) {
@@ -207,23 +208,21 @@ export class World {
     // New players start on autopilot (bot brain) with a short shield, so the
     // embed is already playing well before their first touch. Their first
     // input hands over control.
-    c.snake = this.spawnSnake(ident.name, skin, makeBrain(), c.id, START_MASS, ident);
+    c.snake = this.spawnSnake(name, skin, makeBrain(), c.id, START_MASS);
     c.snake.bot = false;
     c.snake.shieldUntil = this.tick + SHIELD_TICKS;
-    this.json(c.id, { t: "you", name: ident.name, pfp: ident.pfp, verified: ident.verified });
+    this.json(c.id, { t: "you", name });
   }
 
-  // Swap a live player's identity (after Sign in with X). Forgetting the snake
-  // on every client makes the next tick resend it with the new name and pfp.
-  rename(cid: number, ident: Identity): void {
+  // Change a live player's name. Forgetting the snake on every client makes
+  // the next tick resend it with the new name.
+  rename(cid: number, name: string): void {
     const c = this.clients.get(cid);
     if (!c) return;
-    this.json(c.id, { t: "you", name: ident.name, pfp: ident.pfp, verified: ident.verified });
+    this.json(c.id, { t: "you", name });
     const s = c.snake;
-    if (!s) return;
-    s.name = ident.name;
-    s.pfp = ident.pfp;
-    s.verified = ident.verified;
+    if (!s || s.name === name) return;
+    s.name = name;
     for (const o of this.clients.values()) o.known.delete(s.id);
   }
 
@@ -263,7 +262,7 @@ export class World {
     return [x, y];
   }
 
-  spawnSnake(name: string, skin: number, ai: BotBrain | null, cid: number, mass: number, ident?: Identity): Snake {
+  spawnSnake(name: string, skin: number, ai: BotBrain | null, cid: number, mass: number): Snake {
     const [x, y] = this.findSpawn();
     const angle = Math.atan2(-y, -x) + (Math.random() - 0.5) * 1.4;
     const n = pointsOf(mass);
@@ -272,8 +271,7 @@ export class World {
       pts.push(Math.fround(x - Math.cos(angle) * SPACING * i), Math.fround(y - Math.sin(angle) * SPACING * i));
     }
     const s: Snake = {
-      id: this.allocSnakeId(), name, pfp: ident?.pfp ?? "", verified: !!ident?.verified,
-      skin, bot: !!ai, cid,
+      id: this.allocSnakeId(), name, skin, bot: !!ai, cid,
       x: pts[pts.length - 2], y: pts[pts.length - 1], angle, target: angle,
       boost: false, boosting: false, boostAcc: 0, mass, pts,
       alive: true, dying: false, kills: 0, born: this.tick, bestRank: 999, shieldUntil: 0,
@@ -555,7 +553,6 @@ export class World {
       w.u8(s.skin);
       w.u8(this.flags(s));
       w.str(s.name);
-      w.str(s.pfp);
       w.f32(s.mass);
       const n = s.pts.length / 2;
       w.u16(n);
@@ -624,8 +621,7 @@ export class World {
   }
 
   private flags(s: Snake): number {
-    return (s.boosting ? FLAG_BOOST : 0) | (s.bot ? FLAG_BOT : 0) | (s.verified ? FLAG_VERIFIED : 0)
-      | (s.shieldUntil > this.tick ? FLAG_SHIELD : 0);
+    return (s.boosting ? FLAG_BOOST : 0) | (s.bot ? FLAG_BOT : 0) | (s.shieldUntil > this.tick ? FLAG_SHIELD : 0);
   }
 
   private visible(s: Snake, cx: number, cy: number, hx: number, hy: number): boolean {
@@ -639,7 +635,7 @@ export class World {
       if (i + 1 < s.bestRank) s.bestRank = i + 1;
     });
     const top: LeaderEntry[] = sorted.slice(0, 10).map((s) => ({
-      id: s.id, n: s.name, p: s.pfp, s: s.skin, m: Math.floor(s.mass), x: Math.round(s.x), y: Math.round(s.y),
+      id: s.id, n: s.name, s: s.skin, m: Math.floor(s.mass), x: Math.round(s.x), y: Math.round(s.y),
     }));
     const humans = this.humansPlaying;
     for (const c of this.clients.values()) {

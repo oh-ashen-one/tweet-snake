@@ -13,7 +13,7 @@ A slither-style multiplayer snake game that plays inside an X (Twitter) post. Cl
 - **The wire protocol** is compact binary over a WebSocket. A client only receives the snakes and food near its own view, so it uses about 2 KiB/s. The client rebuilds every snake body from head positions using the same spacing rule as the server.
 - **The client** is about 27 KB of TypeScript with no framework. WebGL2 instanced rendering handles segments, food, glows and the hex floor, and a canvas/DOM overlay handles the HUD.
 - **First seconds:** your snake spawns on autopilot with a short shield, so the embed is already playing the moment it opens. Your first mouse move or touch takes over. Bots keep quiet rooms busy.
-- **Names:** you play as `guest####` by default. **Sign in with X** (optional, in a popup) shows your @handle and profile picture instead. It's an OAuth 2.0 + PKCE login that only reads your public profile, and the server signs its own short session token. Nothing else about you is stored.
+- **Names:** you start as `guest####`. Tap your name to set your own; it's remembered on that device. There are no accounts and no sign-in, and nothing about you is stored.
 - **Leaderboard:** top snakes by length, plus a sponsor section managed through an admin endpoint. It collapses to a small pill and opens when you tap it or die.
 
 ## Controls
@@ -39,18 +39,15 @@ npm run dev                      # builds the client, starts wrangler on 127.0.0
 ```bash
 npm run check      # TypeScript, client and worker
 npm run test:sim   # 2 simulated minutes: perf, collisions, growth, client/server sync
-npm run test:e2e   # against a running server: card meta, login hand-off, joins, sponsors
+npm run test:e2e   # against a running server: card meta, names, steering, sponsors
 ```
 
 ## Configuration
 
 | Variable | Purpose |
 |---|---|
-| `SESSION_SECRET` | HMAC key for player session tokens (required for sign-in) |
-| `X_CLIENT_ID`, `X_CLIENT_SECRET` | X developer app for Sign in with X; leave unset to hide the button |
 | `ADMIN_TOKEN` | Bearer token for `PUT /api/admin/sponsors` |
 | `SPONSOR_URL` | Optional link behind "Your name here →" on the leaderboard |
-| `DEV_LOGIN` | `1` enables a fake login for local testing only; never set it in production |
 
 Set production values with `wrangler secret put <NAME>`.
 

@@ -2,13 +2,13 @@
 //
 // client -> server
 //   INPUT  u8 type, u16 angle (0..65535 = 0..2pi), u8 boost
-//   text   "ping" | JSON {t:"join",token?,guest?,skin,aspect} | {t:"auth",token}
+//   text   "ping" | JSON {t:"join",name?,guest,skin,aspect} | {t:"name",name,guest}
 //          | {t:"view",aspect}
 //
 // server -> client
 //   TICK   u8 type, u32 tick, u16 myId, f32 camX, f32 camY,
 //          u16 nLeave  [u16 id, u8 died]
-//          u16 nEnter  [u16 id, u8 skin, u8 flags, str name, str pfp, f32 mass,
+//          u16 nEnter  [u16 id, u8 skin, u8 flags, str name, f32 mass,
 //                       u16 nPts, (f32 x, f32 y)*nPts, f32 hx, f32 hy]
 //          u16 nUpd    [u16 id, f32 hx, f32 hy, f32 mass, u8 flags]
 //          u16 nDrop   [u16 cell]
@@ -21,8 +21,7 @@ export const MSG_TICK = 2;
 
 export const FLAG_BOOST = 1;
 export const FLAG_BOT = 2;
-export const FLAG_VERIFIED = 4;
-export const FLAG_SHIELD = 8;
+export const FLAG_SHIELD = 4;
 
 const TAU = Math.PI * 2;
 
@@ -169,7 +168,6 @@ export class Reader {
 export interface LeaderEntry {
   id: number;
   n: string;
-  p: string;
   s: number;
   m: number;
   x: number;
@@ -183,16 +181,9 @@ export interface Sponsor {
   amount: number;
 }
 
-// Identity attached to a player: a verified X account or a guest.
-export interface Identity {
-  name: string;
-  pfp: string;
-  verified: boolean;
-}
-
 export type ServerJson =
   | { t: "hello"; room: string; humans: number; sponsors: Sponsor[] }
-  | { t: "you"; name: string; pfp: string; verified: boolean }
+  | { t: "you"; name: string }
   | { t: "sponsors"; list: Sponsor[] }
   | { t: "dead"; mass: number; kills: number; killer: string | null; best: number; secs: number }
   | { t: "lb"; top: LeaderEntry[]; rank: number; count: number; humans: number }

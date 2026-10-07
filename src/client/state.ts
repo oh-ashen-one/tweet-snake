@@ -1,14 +1,12 @@
 // Client mirror of the server world, rebuilt from TICK messages. Bodies are
 // reconstructed from head positions with the same spacing rule the server uses.
 
-import { FLAG_BOOST, FLAG_BOT, FLAG_SHIELD, FLAG_VERIFIED, MSG_TICK, Reader } from "../shared/protocol";
+import { FLAG_BOOST, FLAG_BOT, FLAG_SHIELD, MSG_TICK, Reader } from "../shared/protocol";
 import { TICK_MS, extendPath, foodCellOf, pointsOf, trimPath } from "../shared/rules";
 
 export interface CSnake {
   id: number;
   name: string;
-  pfp: string;
-  verified: boolean;
   skin: number;
   bot: boolean;
   mass: number;
@@ -92,7 +90,6 @@ export function applyTick(buf: ArrayBuffer, now: number): void {
     const skin = r.u8();
     const flags = r.u8();
     const name = r.str();
-    const pfp = r.str();
     const mass = r.f32();
     const np = r.u16();
     const pts = new Array<number>(np * 2);
@@ -103,7 +100,7 @@ export function applyTick(buf: ArrayBuffer, now: number): void {
     const ox = pts.length >= 4 ? pts[pts.length - 4] : lx - 1;
     const oy = pts.length >= 4 ? pts[pts.length - 3] : ly;
     state.snakes.set(id, {
-      id, name, pfp, verified: (flags & FLAG_VERIFIED) !== 0, skin, bot: (flags & FLAG_BOT) !== 0, mass, pts, base: 0,
+      id, name, skin, bot: (flags & FLAG_BOT) !== 0, mass, pts, base: 0,
       hx, hy, px: hx, py: hy, dir: Math.atan2(ly - oy, lx - ox), boost: (flags & FLAG_BOOST) !== 0,
       shield: (flags & FLAG_SHIELD) !== 0,
     });
