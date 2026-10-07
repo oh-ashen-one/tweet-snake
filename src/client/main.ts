@@ -7,6 +7,7 @@ import { Input } from "./input";
 import { Net } from "./net";
 import { KIND_BODY, KIND_FLAT, KIND_FOOD, KIND_GLOW, Renderer } from "./render";
 import { applyTick, resetWorld, state, type CSnake } from "./state";
+import { SponsorPanel, parseSponsorConfig } from "./sponsor";
 import { UI } from "./ui";
 
 type RGB = [number, number, number];
@@ -64,7 +65,10 @@ try {
 
 const hud = new Hud(hudc);
 const input = new Input(glc);
-const ui = new UI(uiRoot, { embed, sponsorUrl: body.dataset.sponsorUrl || "", skin, customName: !!myChosenName });
+const sponsorCfg = parseSponsorConfig(body.dataset.sponsor);
+const ui = new UI(uiRoot, { embed, sponsorOn: !!sponsorCfg, skin, customName: !!myChosenName });
+const sponsorPanel = sponsorCfg ? new SponsorPanel(uiRoot, sponsorCfg, room) : null;
+ui.onSponsor = () => void sponsorPanel?.show();
 ui.shareUrl = `${location.origin}/r/${room}`;
 
 const net = new Net(room);
@@ -245,7 +249,7 @@ function draw(): void {
 
   input.update(dt);
   if (playing && input.touched) net.input(input.angle, input.boost, now);
-  ui.showHint(playing && !input.touched && !ui.editing);
+  ui.showHint(playing && !input.touched && !ui.editing && !sponsorPanel?.open);
 
   const alpha = state.lastAt ? Math.min(1, (now - state.lastAt) / state.interval) : 1;
   heads.clear();

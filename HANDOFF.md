@@ -12,9 +12,14 @@ Live: https://tweet-snake.notashenone.workers.dev (Cloudflare Worker `tweet-snak
 
 ## Decisions
 - No accounts: players tap their name to set it (stored on their device). A leading @ is stripped and a small slur filter falls back to guest####.
-- Sponsors: an admin-managed list only (`PUT /api/admin/sponsors`, Bearer `ADMIN_TOKEN`). Crypto bidding was built, then dropped at the owner's request (2026-10-07). Don't re-add it unasked.
+- Sponsors (owner's spec, 2026-10-07): Stripe Checkout at $500 / $300 / $100 with adjustable quantity. Spots last 24 h and the board ranks by total paid (same-name buys add up). **Test mode only for now**: the server refuses live keys unless `STRIPE_ALLOW_LIVE=1`.
+  - Crypto bidding was built, then dropped at the owner's request. Don't re-add it unasked.
+  - Admin: `PUT /api/admin/sponsors` (house entries), `DELETE /api/admin/sponsorships/:cs_id` (moderation).
+  - Tested: `npm run test:unit` and `npm run test:sponsor` against `scripts/mock-stripe.mjs` (the latter failed once out of 5 runs, just after a cold restart; not reproduced since).
 - New players start on autopilot with a 2.5 s shield until their first input.
 
 ## Next
+- To try real Stripe test checkout: create a Stripe account (test mode), then `wrangler secret put STRIPE_SECRET_KEY` (sk_test_…) and redeploy.
+  - Optionally add a webhook endpoint `https://<host>/api/stripe/webhook` for `checkout.session.completed` and `wrangler secret put STRIPE_WEBHOOK_SECRET`. Without it, payments still record when the buyer reaches the success page.
 - Owner playtest feedback.
 - Optional: a custom domain (the workers.dev URL contains the account name), a real card image, sound.

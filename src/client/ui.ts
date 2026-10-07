@@ -51,7 +51,7 @@ export class UI {
   private board: Board = { top: [], rank: 0, count: 0, humans: 0 };
   private myName = "";
   private deathAt = 0;
-  private sponsorUrl: string;
+  private sponsorOn: boolean;
   private customName: boolean;
   skin = 0;
 
@@ -62,10 +62,12 @@ export class UI {
   onBoost: (on: boolean) => void = () => {};
   shareUrl = "";
 
-  constructor(root: HTMLElement, opts: { embed: boolean; sponsorUrl: string; skin: number; customName: boolean }) {
+  onSponsor: () => void = () => {};
+
+  constructor(root: HTMLElement, opts: { embed: boolean; sponsorOn: boolean; skin: number; customName: boolean }) {
     this.root = root;
     this.skin = opts.skin;
-    this.sponsorUrl = opts.sponsorUrl;
+    this.sponsorOn = opts.sponsorOn;
     this.customName = opts.customName;
 
     const tl = el("div", "tl");
@@ -200,16 +202,14 @@ export class UI {
           name.target = "_blank";
           name.rel = "noopener sponsored";
         }
-        li.append(el("span", "crown", i === 0 ? "👑" : "★"), name);
+        li.append(el("span", "crown", i === 0 ? "👑" : "★"), name, el("span", "amt", `$${s.amount.toLocaleString()}`));
         ol.append(li);
       });
       sp.append(ol);
     }
-    if (this.sponsorUrl) {
-      const cta = el("a", "sp-cta", this.sponsors.length ? "Take the top spot →" : "Your name here →");
-      cta.href = this.sponsorUrl;
-      cta.target = "_blank";
-      cta.rel = "noopener";
+    if (this.sponsorOn) {
+      const cta = el("button", "sp-cta", this.sponsors.length ? "Sponsor & take the 👑 spot →" : "Your name here → sponsor");
+      cta.onclick = () => this.onSponsor();
       sp.append(cta);
     } else if (!this.sponsors.length) {
       sp.append(el("div", "sp-empty", "Your name here"));

@@ -14,7 +14,7 @@ A slither-style multiplayer snake game that plays inside an X (Twitter) post. Cl
 - **The client** is about 27 KB of TypeScript with no framework. WebGL2 instanced rendering handles segments, food, glows and the hex floor, and a canvas/DOM overlay handles the HUD.
 - **First seconds:** your snake spawns on autopilot with a short shield, so the embed is already playing the moment it opens. Your first mouse move or touch takes over. Bots keep quiet rooms busy.
 - **Names:** you start as `guest####`. Tap your name to set your own; it's remembered on that device. There are no accounts and no sign-in, and nothing about you is stored.
-- **Leaderboard:** top snakes by length, plus a sponsor section the owner sets through an admin endpoint. It collapses to a small pill and opens when you tap it or die.
+- **Leaderboard:** top snakes by length, plus a sponsor section. Sponsor spots are bought through Stripe Checkout at three price points ($500 / $300 / $100). Buyers can raise the quantity, spots last 24 hours, and the board ranks sponsors by total paid. Payments are recorded by Stripe's signed webhook or the checkout success page. It collapses to a small pill and opens when you tap it or die.
 
 ## Controls
 
@@ -39,15 +39,19 @@ npm run dev                      # builds the client, starts wrangler on 127.0.0
 ```bash
 npm run check      # TypeScript, client and worker
 npm run test:sim   # 2 simulated minutes: perf, collisions, growth, client/server sync
+npm run test:unit  # sponsorship ranking, expiry, live-key guard, webhook signatures
 npm run test:e2e   # against a running server: card meta, names, steering, sponsors
+npm run test:sponsor  # full Stripe checkout flow against scripts/mock-stripe.mjs
 ```
 
 ## Configuration
 
 | Variable | Purpose |
 |---|---|
-| `ADMIN_TOKEN` | Bearer token for `PUT /api/admin/sponsors` |
-| `SPONSOR_URL` | Optional link behind "Your name here →" on the leaderboard |
+| `ADMIN_TOKEN` | Bearer token for the admin endpoints (house sponsors, removing a sponsorship) |
+| `STRIPE_SECRET_KEY` | Stripe key for sponsor checkout. Test keys only, unless `STRIPE_ALLOW_LIVE=1` |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the webhook at `/api/stripe/webhook` (`checkout.session.completed`) |
+| `SPONSOR_HOURS` | How long a paid spot lasts (default 24) |
 
 Set production values with `wrangler secret put <NAME>`.
 

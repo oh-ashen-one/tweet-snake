@@ -5,14 +5,14 @@ import { DurableObject } from "cloudflare:workers";
 import type { Sponsor } from "../shared/protocol";
 import { TICK_MS } from "../shared/rules";
 import type { Meta } from "./meta";
+import type { StripeEnv } from "./sponsorship";
 import { World, playerName } from "./world";
 
-export interface Env {
+export interface Env extends StripeEnv {
   ARENA: DurableObjectNamespace<Arena>;
   META: DurableObjectNamespace<Meta>;
   ASSETS: Fetcher;
   ADMIN_TOKEN?: string;
-  SPONSOR_URL?: string;
 }
 
 const SPONSOR_REFRESH_MS = 30e3;

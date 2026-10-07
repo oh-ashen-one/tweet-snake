@@ -128,3 +128,29 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .editor input:focus { border-color: var(--gold); }
 .save { background: var(--gold); color: #1a1300; font-weight: 800; }
 .linkish { display: block; margin: 10px auto 0; background: none; border: 0; color: var(--gold); font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+.sp-list .amt, .bid-board .amt { margin-left: auto; font-size: 11px; color: rgba(255,211,77,.8); font-variant-numeric: tabular-nums; }
+.sp-cta { display: block; margin-top: 6px; background: none; border: 0; padding: 0; font: inherit; font-size: 11.5px; font-weight: 800; color: var(--gold) !important; cursor: pointer; text-align: left; }
+.bidwrap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(5,6,10,.6); padding: 10px; box-sizing: border-box; z-index: 10; }
+.card.bid { width: min(380px, 100%); }
+.bid-head { display: flex; align-items: center; gap: 8px; }
+.bid-head .dt { flex: 1; text-align: left; font-size: 17px; }
+.bid-head .x { background: none; border: 0; color: var(--dim); font-size: 16px; cursor: pointer; padding: 4px; }
+.bid-copy, .info-p { font-size: 12.5px; color: rgba(255,255,255,.75); line-height: 1.45; margin: 8px 0; font-weight: 600; }
+.bid-board { background: rgba(255,211,77,.08); border: 1px solid rgba(255,211,77,.25); border-radius: 10px; padding: 6px 10px !important; margin: 6px 0 10px !important; }
+.bid-form { display: grid; gap: 7px; }
+.bid-form input {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--line); background: rgba(255,255,255,.06); color: #fff;
+  border-radius: 10px; padding: 9px 10px; font: inherit; font-size: 14px; outline: none; -webkit-user-select: text; user-select: text;
+}
+.bid-form input:focus { border-color: var(--gold); }
+.tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tier { display: grid; gap: 1px; padding: 8px 4px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: #fff; font: inherit; cursor: pointer; }
+.tier b { font-size: 16px; }
+.tier span { font-size: 10px; color: var(--dim); }
+.tier.on { border-color: var(--gold); background: rgba(255,211,77,.14); }
+.bid-err { color: #ff8a9a; font-size: 12px; }
+.fine { font-size: 10.5px; color: var(--dim); margin-top: 8px; text-align: center; }
+.wallet { display: block; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 10px; }
+body.info { display: grid; place-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; touch-action: auto; overflow: auto; }
+body.info .dt { text-align: left; }
