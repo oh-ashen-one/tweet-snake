@@ -1,6 +1,7 @@
 // Single global Durable Object for state shared across rooms (the sponsor list).
 
 import { DurableObject } from "cloudflare:workers";
+import { cleanDisplayName } from "../shared/names";
 import type { Sponsor } from "../shared/protocol";
 
 export function cleanSponsors(raw: unknown): Sponsor[] | null {
@@ -9,8 +10,9 @@ export function cleanSponsors(raw: unknown): Sponsor[] | null {
   for (const r of raw) {
     if (!r || typeof r !== "object") return null;
     const { name, url, amount } = r as Record<string, unknown>;
-    if (typeof name !== "string" || !name.trim() || typeof amount !== "number" || !(amount >= 0)) return null;
-    const s: Sponsor = { name: name.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 24), amount };
+    const clean = cleanDisplayName(name, 24);
+    if (!clean || typeof amount !== "number" || !(amount >= 0)) return null;
+    const s: Sponsor = { name: clean, amount };
     if (url !== undefined) {
       if (typeof url !== "string") return null;
       try {

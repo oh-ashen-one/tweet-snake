@@ -11,6 +11,7 @@ import {
   FLAG_BOOST, FLAG_BOT, FLAG_SHIELD, MSG_INPUT, MSG_TICK, Writer, unpackAngle,
   type LeaderEntry, type ServerJson, type Sponsor,
 } from "../shared/protocol";
+import { cleanDisplayName } from "../shared/names";
 import { BOT_NAMES, makeBrain, thinkBot, type BotBrain } from "./bots";
 
 const TAU = Math.PI * 2;
@@ -107,18 +108,10 @@ export class Grid {
   }
 }
 
-// Very small blocklist for the worst slurs; anything matching becomes a guest name.
-const BLOCKED = /n[i1!]gg|f[a@4]gg?[o0e]t|r[e3]t[a@4]rd|k[i1]ke|tr[a@4]nny|ch[i1]nk|sp[i1]c\b|c[o0]{2}n\b|wetback|n[a@4]z[i1]|h[i1]tler|rap(e|ist)/i;
-
-// A player's chosen display name, or guest#### when empty or blocked. A
-// leading @ is stripped so nobody can pose as an X account.
+// A player's chosen display name, or guest#### when empty or blocked.
 export function playerName(raw: unknown, guest: unknown): string {
   const digits = String(guest ?? "").replace(/\D/g, "").slice(0, 4);
-  const fallback = `guest${digits.length === 4 ? digits : 1000 + Math.floor(Math.random() * 9000)}`;
-  const s = String(raw ?? "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/^@+/, "").replace(/\s+/g, " ").trim();
-  const name = [...s].slice(0, MAX_NAME).join("").trim();
-  if (!name || BLOCKED.test(name.replace(/[\s._-]/g, ""))) return fallback;
-  return name;
+  return cleanDisplayName(raw, MAX_NAME) || `guest${digits.length === 4 ? digits : 1000 + Math.floor(Math.random() * 9000)}`;
 }
 
 function clampAspect(a: unknown): number {

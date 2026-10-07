@@ -14,7 +14,7 @@ A slither-style multiplayer snake game that plays inside an X (Twitter) post. Cl
 - **The client** is about 27 KB of TypeScript with no framework. WebGL2 instanced rendering handles segments, food, glows and the hex floor, and a canvas/DOM overlay handles the HUD.
 - **First seconds:** your snake spawns on autopilot with a short shield, so the embed is already playing the moment it opens. Your first mouse move or touch takes over. Bots keep quiet rooms busy.
 - **Names:** you start as `guest####`. Tap your name to set your own; it's remembered on that device. There are no accounts and no sign-in, and nothing about you is stored.
-- **Leaderboard:** top snakes by length, plus a sponsor section managed through an admin endpoint. It collapses to a small pill and opens when you tap it or die.
+- **Leaderboard:** top snakes by length, plus a sponsor section the owner sets through an admin endpoint. It collapses to a small pill and opens when you tap it or die.
 
 ## Controls
 
