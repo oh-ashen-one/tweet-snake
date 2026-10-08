@@ -36,6 +36,8 @@ export class Arena extends DurableObject<Env> {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     server.accept();
+    // Newer compatibility dates deliver binary frames as Blob by default.
+    (server as unknown as { binaryType: string }).binaryType = "arraybuffer";
     const cid = world.addClient((d) => {
       try {
         server.send(d);
@@ -62,14 +64,17 @@ export class Arena extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  // Binary frames can arrive as ArrayBuffer or a typed-array view depending on
-  // the runtime; normalise before the world reads them.
+  // Binary frames can arrive as ArrayBuffer, a typed-array view or a Blob
+  // depending on the runtime and binaryType; normalise before the world reads them.
   private onSocketMessage(world: World, cid: number, raw: unknown): void {
     let data: string | ArrayBuffer;
     if (typeof raw === "string") data = raw;
     else if (raw instanceof ArrayBuffer) data = raw;
     else if (ArrayBuffer.isView(raw)) data = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength).slice().buffer;
-    else return;
+    else if (raw instanceof Blob) {
+      raw.arrayBuffer().then((buf) => world.onMessage(cid, buf)).catch(() => {});
+      return;
+    } else return;
 
     if (typeof data === "string" && data.startsWith("{")) {
       let m: { t?: string; name?: unknown; guest?: unknown; skin?: unknown; aspect?: unknown };

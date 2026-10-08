@@ -108,11 +108,11 @@ export class SponsorPanel {
     link.inputMode = "url";
     const err = el("div", "bid-err");
     const go = el("button", "play", "Continue to checkout");
-    go.type = "submit";
-    const f = el("form", "bid-form");
+    go.type = "button";
+    // Not a <form>: X's sandboxed iframe blocks form submission.
+    const f = el("div", "bid-form");
     f.append(tierRow, name, link, err, go);
-    f.onsubmit = async (e) => {
-      e.preventDefault();
+    const submit = async () => {
       err.textContent = "";
       go.disabled = true;
       // Open the tab during the click so popup blockers allow it, then point it at Stripe.
@@ -138,6 +138,15 @@ export class SponsorPanel {
         go.disabled = false;
       }
     };
+    go.onclick = () => void submit();
+    for (const input of [name, link]) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          void submit();
+        }
+      });
+    }
     parts.push(f);
     parts.push(el("div", "fine", test
       ? "Stripe TEST MODE: nothing is charged. Use card 4242 4242 4242 4242, any future date, any CVC."

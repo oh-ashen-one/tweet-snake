@@ -38,7 +38,8 @@ export class UI {
   root: HTMLElement;
   private chip = el("button", "chip");
   private colorBtn = el("button", "dot");
-  private editor = el("form", "editor");
+  // Not a <form>: X's sandboxed iframe blocks form submission.
+  private editor = el("div", "editor");
   private nameInput = el("input");
   private lb = el("div", "lb collapsed");
   private lbHead = el("button", "lb-head");
@@ -92,22 +93,28 @@ export class UI {
     this.nameInput.spellcheck = false;
     this.nameInput.enterKeyHint = "done";
     const save = el("button", "btn save", "Save");
-    save.type = "submit";
+    save.type = "button";
     this.editor.append(this.nameInput, save);
     this.editor.hidden = true;
-    this.editor.onsubmit = (e) => {
-      e.preventDefault();
+    const commit = () => {
       const name = this.nameInput.value.trim();
-      this.editor.hidden = true;
-      this.nameInput.blur();
+      this.closeEditor();
       if (name) {
         this.customName = true;
         this.onName(name);
       }
     };
+    save.onclick = commit;
     this.nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") this.editor.hidden = true;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      } else if (e.key === "Escape") this.closeEditor();
     });
+    // Clicking anywhere else closes the editor so the game takes input again.
+    document.addEventListener("pointerdown", (e) => {
+      if (!this.editor.hidden && !this.editor.contains(e.target as Node) && !this.chip.contains(e.target as Node)) this.closeEditor();
+    }, { capture: true });
 
     this.lbHead.onclick = () => this.lb.classList.toggle("collapsed");
     this.lb.append(this.lbHead, this.lbBody);
@@ -126,7 +133,7 @@ export class UI {
 
     this.death.hidden = true;
     this.death.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest("a,button,input,form")) return;
+      if ((e.target as HTMLElement).closest("a,button,input,.editor")) return;
       if (performance.now() - this.deathAt > 700) this.onRespawn();
     });
 
@@ -143,6 +150,11 @@ export class UI {
     this.nameInput.value = this.customName ? this.myName : "";
     this.editor.hidden = false;
     this.nameInput.focus();
+  }
+
+  closeEditor(): void {
+    this.editor.hidden = true;
+    this.nameInput.blur();
   }
 
   get editing(): boolean {

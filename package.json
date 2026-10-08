@@ -11,7 +11,8 @@
     "test": "npm run check && npm run test:sim && npm run test:unit",
     "deploy": "npm run build:client && wrangler deploy",
     "test:unit": "tsx scripts/sponsor-unit.ts",
-    "test:sponsor": "node scripts/sponsor-flow-test.mjs"
+    "test:sponsor": "node scripts/sponsor-flow-test.mjs",
+    "test:steer": "node scripts/steer-check.mjs"
   },
   "type": "module",
   "devDependencies": {

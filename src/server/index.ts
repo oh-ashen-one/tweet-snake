@@ -181,6 +181,11 @@ export default {
         return env.ARENA.get(env.ARENA.idFromName(parts[2])).fetch(new Request(`${url.origin}/room/${parts[2]}`));
       }
       if (second === "sponsors") return meta(env).fetch("https://meta/sponsors");
+      if (second === "diag" && req.method === "POST") {
+        const body = (await req.text()).slice(0, 2000);
+        console.log("DIAG", req.headers.get("cf-ipcountry") || "", body);
+        return new Response(null, { status: 204 });
+      }
       if (second === "admin") {
         if (!env.ADMIN_TOKEN || req.headers.get("authorization") !== `Bearer ${env.ADMIN_TOKEN}`) {
           return new Response("unauthorized", { status: 401 });
