@@ -18,7 +18,10 @@ Live: **https://snekarena.com** (bought 2026-10-08 on Cloudflare Registrar, $10.
   - Crypto bidding was built, then dropped at the owner's request. Don't re-add it unasked.
   - Admin: `PUT /api/admin/sponsors` (house entries), `DELETE /api/admin/sponsorships/:cs_id` (moderation).
   - Tested: `npm run test:unit` and `npm run test:sponsor` against `scripts/mock-stripe.mjs` (the latter failed once out of 5 runs, just after a cold restart; not reproduced since).
-- New players start on autopilot with a 2.5 s shield until their first input.
+- New players start on autopilot with a 2.5 s shield until their first input; opening the name editor or sponsor panel re-enables autopilot until the next steer.
+- Bots: max(2, 8 − humans) per room, labelled 🤖 wherever a name shows (owner asked for fewer, 2026-10-08).
+- X's player iframe blocks form submission: never use <form> in the client. public/dev-embed.html mirrors that sandbox.
+- DO WebSockets must set binaryType="arraybuffer" (the new compat-date default is Blob, which silently broke steering). `npm run test:steer` guards it.
 
 ## Next
 - To try real Stripe test checkout: create a Stripe account (test mode), then `wrangler secret put STRIPE_SECRET_KEY` (sk_test_…) and redeploy.

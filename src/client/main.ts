@@ -332,40 +332,6 @@ function draw(): void {
 }
 requestAnimationFrame(frame);
 
-// Field diagnostics: a few small beacons in the first minute so we can see
-// how the game behaves inside real embeds (joined? input arriving?).
-const bootAt = performance.now();
-let diagSent = 0;
-function diag(reason: string): void {
-  if (diagSent >= 8) return;
-  diagSent++;
-  let storage = "ok";
-  try {
-    localStorage.getItem("x");
-  } catch {
-    storage = "blocked";
-  }
-  const body = JSON.stringify({
-    reason, t: Math.round((performance.now() - bootAt) / 1000), embed, origin: self.origin, storage,
-    open: net.open, myId: state.myId, playing, touched: input.touched, events: input.events,
-    w: W, h: H, dpr: DPR, ua: navigator.userAgent.slice(0, 160), ref: document.referrer.slice(0, 80),
-    err: lastError.slice(0, 200),
-  });
-  try {
-    fetch("/api/diag", { method: "POST", body, keepalive: true }).catch(() => {});
-  } catch {
-    // ignore
-  }
-}
-for (const s of [3, 10, 25, 50]) setTimeout(() => diag(`t${s}`), s * 1000);
-let diagTouched = false;
-window.addEventListener("pointerdown", () => {
-  if (!diagTouched) {
-    diagTouched = true;
-    setTimeout(() => diag("first-pointerdown"), 1500);
-  }
-}, { capture: true });
-
 // Playtest/debug handle.
 (window as unknown as { __snek: object }).__snek = {
   net, state, input, ui,

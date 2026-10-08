@@ -114,6 +114,11 @@ export function playerName(raw: unknown, guest: unknown): string {
   return cleanDisplayName(raw, MAX_NAME) || `guest${digits.length === 4 ? digits : 1000 + Math.floor(Math.random() * 9000)}`;
 }
 
+// Bots are marked wherever a name is shown, so players can tell who's real.
+function label(s: Snake): string {
+  return s.bot ? `${s.name} 🤖` : s.name;
+}
+
 function clampAspect(a: unknown): number {
   const n = Number(a);
   return Number.isFinite(n) ? Math.min(3, Math.max(1 / 3, n)) : 1;
@@ -388,7 +393,7 @@ export class World {
 
     if (killer) killer.kills++;
     if (s.mass >= 40 || !s.bot || (killer && !killer.bot)) {
-      this.broadcast({ t: "kill", k: killer ? killer.name : "", v: s.name, m: Math.floor(s.mass) });
+      this.broadcast({ t: "kill", k: killer ? label(killer) : "", v: label(s), m: Math.floor(s.mass) });
     }
 
     const c = s.cid ? this.clients.get(s.cid) : undefined;
@@ -398,7 +403,7 @@ export class World {
       c.camX = s.x;
       c.camY = s.y;
       this.json(c.id, {
-        t: "dead", mass: Math.floor(s.mass), kills: s.kills, killer: killer ? killer.name : null,
+        t: "dead", mass: Math.floor(s.mass), kills: s.kills, killer: killer ? label(killer) : null,
         best: s.bestRank, secs: Math.round((this.tick - s.born) * DT),
       });
     }
@@ -485,7 +490,8 @@ export class World {
       bots++;
       if (!smallest || s.mass < smallest.mass) smallest = s;
     }
-    const target = this.clients.size > 0 ? Math.max(6, 20 - this.humansPlaying) : 0;
+    // A few bots keep a quiet arena alive; they bow out as real players join.
+    const target = this.clients.size > 0 ? Math.max(2, 8 - this.humansPlaying) : 0;
     if (bots < target) {
       // Fill an empty arena fast so a fresh embed never looks dead.
       const used = new Set([...this.snakes.values()].map((s) => s.name));
@@ -631,7 +637,7 @@ export class World {
       if (i + 1 < s.bestRank) s.bestRank = i + 1;
     });
     const top: LeaderEntry[] = sorted.slice(0, 10).map((s) => ({
-      id: s.id, n: s.name, s: s.skin, m: Math.floor(s.mass), x: Math.round(s.x), y: Math.round(s.y),
+      id: s.id, n: label(s), s: s.skin, m: Math.floor(s.mass), x: Math.round(s.x), y: Math.round(s.y),
     }));
     const humans = this.humansPlaying;
     for (const c of this.clients.values()) {

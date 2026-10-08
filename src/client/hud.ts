@@ -71,11 +71,12 @@ export class Hud {
       const fs = Math.round((s === o.me ? 13 : 12) * u);
       c.font = `700 ${fs}px ui-rounded, "SF Pro Rounded", system-ui, sans-serif`;
       const isMe = s === o.me;
+      const shown = s.bot ? `${s.name} 🤖` : s.name;
       c.lineWidth = 3;
       c.strokeStyle = "rgba(0,0,0,.55)";
-      c.strokeText(s.name, sx, y);
+      c.strokeText(shown, sx, y);
       c.fillStyle = isMe ? "#fff" : "rgba(255,255,255,.78)";
-      c.fillText(s.name, sx, y);
+      c.fillText(shown, sx, y);
       if (isMe) {
         // "YOU" tag with a little pointer so your snake is never ambiguous.
         const ty = y - fs - 6 * u;

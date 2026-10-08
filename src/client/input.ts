@@ -21,15 +21,7 @@ export class Input {
   private left = false;
   private right = false;
 
-  events: Record<string, number> = {};
-
   constructor(el: HTMLElement) {
-    for (const type of ["pointerdown", "pointermove", "touchstart", "mousedown", "mousemove", "keydown"]) {
-      window.addEventListener(type, (e) => {
-        const k = `${type}${(e as PointerEvent).pointerType ? ":" + (e as PointerEvent).pointerType : ""}`;
-        this.events[k] = (this.events[k] || 0) + 1;
-      }, { capture: true, passive: true });
-    }
     el.addEventListener("pointerdown", (e) => {
       this.touched = true;
       if (e.pointerType === "mouse") {
