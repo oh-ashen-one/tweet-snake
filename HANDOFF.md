@@ -1,11 +1,11 @@
 # Handoff: SNEK (multiplayer snake in an X post)
 
 Updated 2026-10-07. Branch: `claude/snake-io-prototype` (public repo oh-ashen-one/tweet-snake).
-Live: https://tweet-snake.notashenone.workers.dev (Cloudflare Worker `tweet-snake`).
+Live: **https://snekarena.com** (bought 2026-10-08 on Cloudflare Registrar, $10.46/yr, auto-renew). Worker `tweet-snake` with custom domains snekarena.com + www (www redirects 301 to the apex). The workers.dev URL is disabled. Share link: https://snekarena.com/r/main. Stripe webhook we_1UOIXl… points at https://snekarena.com/api/stripe/webhook.
 
 ## Verified state
 - `npm run check` clean. `npm run test:sim` PASS (body/food sync exact, tick p99 well under 1 ms).
-- `npm run test:e2e` PASS locally and against production (`BASE=https://... npm run test:e2e`, with `ADMIN_TOKEN` loaded from `~/.config/tweet-snake/secrets.env`).
+- `npm run test:e2e` PASS locally and against production (`BASE=https://snekarena.com npm run test:e2e`, with `ADMIN_TOKEN` loaded from `~/.config/tweet-snake/secrets.env`).
   - Covers card meta, names, real steering input, rename, leaderboard and sponsors.
 - Fixed: binary steering frames crashed rooms (normalised in `arena.ts`; `world.onMessage` reads via Uint8Array).
 - Gameplay feel and phones: the owner is testing these himself.
@@ -24,4 +24,4 @@ Live: https://tweet-snake.notashenone.workers.dev (Cloudflare Worker `tweet-snak
 - To try real Stripe test checkout: create a Stripe account (test mode), then `wrangler secret put STRIPE_SECRET_KEY` (sk_test_…) and redeploy.
   - Optionally add a webhook endpoint `https://<host>/api/stripe/webhook` for `checkout.session.completed` and `wrangler secret put STRIPE_WEBHOOK_SECRET`. Without it, payments still record when the buyer reaches the success page.
 - Owner playtest feedback.
-- Optional: a custom domain (the workers.dev URL contains the account name), a real card image, sound.
+- Optional: sound.

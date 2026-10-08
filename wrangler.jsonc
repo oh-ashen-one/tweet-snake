@@ -15,5 +15,9 @@
     ]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arena", "Meta"] }],
+  "routes": [
+    { "pattern": "snekarena.com", "custom_domain": true },
+    { "pattern": "www.snekarena.com", "custom_domain": true }
+  ],
   "observability": { "enabled": true }
 }

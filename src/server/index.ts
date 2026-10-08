@@ -155,6 +155,11 @@ async function webhook(req: Request, env: Env): Promise<Response> {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+    // One canonical host so share links and card URLs never split.
+    if (url.hostname.startsWith("www.")) {
+      url.hostname = url.hostname.slice(4);
+      return Response.redirect(url.toString(), 301);
+    }
     const parts = url.pathname.split("/").filter(Boolean);
     const [head, second] = parts;
 

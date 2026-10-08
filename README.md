@@ -1,5 +1,7 @@
 # SNEK: multiplayer snake inside a tweet
 
+Play: **https://snekarena.com** · share link for posts: `https://snekarena.com/r/main`
+
 > **This is a fun experiment.** I saw someone put a playable game inside a post on X and wanted to see how it works and how cool it could get. The game is free to play. The only money involved is optional sponsor spots on the leaderboard, sold through Stripe. It isn't affiliated with or endorsed by X Corp. or the makers of any other snake game, and it isn't trying to get around anyone's rules. If X asks for embeds like this to come down, they come down.
 
 A slither-style multiplayer snake game that plays inside an X (Twitter) post. Click the post and you're straight in, playing everyone else who opened it. There's no menu, no install and no account needed.
