@@ -154,3 +154,5 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .wallet { display: block; text-align: center; text-decoration: none; box-sizing: border-box; margin-top: 10px; }
 body.info { display: grid; place-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; touch-action: auto; overflow: auto; }
 body.info .dt { text-align: left; }
+
+body.shot #ui, body.shot #hud { display: none !important; }

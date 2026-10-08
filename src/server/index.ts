@@ -22,6 +22,9 @@ export { Arena, Meta };
 
 const ROOM_RE = /^[a-z0-9-]{1,32}$/;
 
+// Bump when public/card.png changes; X caches preview images by URL.
+const CARD_VERSION = 2;
+
 const FRAME_ANCESTORS =
   "frame-ancestors 'self' https://x.com https://*.x.com https://twitter.com https://*.twitter.com";
 
@@ -45,14 +48,14 @@ function page(origin: string, room: string, embed: boolean, env: Env): string {
 <meta name="twitter:card" content="player">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
-<meta name="twitter:image" content="${origin}/card.png">
+<meta name="twitter:image" content="${origin}/card.png?v=${CARD_VERSION}">
 <meta name="twitter:player" content="${playerUrl}">
 <meta name="twitter:player:width" content="480">
 <meta name="twitter:player:height" content="480">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(desc)}">
-<meta property="og:image" content="${origin}/card.png">
+<meta property="og:image" content="${origin}/card.png?v=${CARD_VERSION}">
 <meta property="og:url" content="${shareUrl}">
 <link rel="icon" href="/favicon.svg">
 <link rel="stylesheet" href="/style.css">

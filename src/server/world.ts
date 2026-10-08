@@ -177,6 +177,9 @@ export class World {
         return;
       }
       if (m.t === "view") c.aspect = clampAspect(m.aspect);
+      // A menu is open on the client: let the bot brain drive until the
+      // player's next steering input takes control back.
+      else if (m.t === "auto" && c.snake && !c.snake.ai) c.snake.ai = makeBrain();
       return;
     }
     const b = new Uint8Array(data);

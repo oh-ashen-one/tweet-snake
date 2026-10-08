@@ -41,6 +41,11 @@ function steer(cid: number, angle: number, boost: boolean) {
   world.onMessage(cid, buf);
 }
 
+world.onMessage(a, JSON.stringify({ t: "auto" }));
+const autoOn = !!world.clients.get(a)!.snake?.ai;
+steer(a, 0, false);
+const autoOff = !world.clients.get(a)!.snake?.ai;
+
 const ticks = Math.round(SECONDS / DT);
 const times: number[] = [];
 let maxErr = 0;
@@ -117,6 +122,7 @@ const report = {
 console.log(JSON.stringify(report, null, 2));
 
 const fails: string[] = [];
+if (!autoOn || !autoOff) fails.push(`menu autopilot: on=${autoOn} off-after-input=${autoOff}`);
 if (nameChecks.includes(false)) fails.push(`name cleaning: ${JSON.stringify(nameChecks)}`);
 if (p99 > 8) fails.push(`tick p99 ${p99.toFixed(2)}ms > 8ms`);
 if (maxSnakes < 10) fails.push("bots did not populate the arena");

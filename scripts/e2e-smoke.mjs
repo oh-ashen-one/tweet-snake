@@ -73,6 +73,9 @@ check(alice.closed === null && guest.closed === null, "steering input keeps the 
 alice.ws.send(JSON.stringify({ t: "name", name: "alice2", guest: "1111" }));
 await sleep(300);
 check(alice.json.filter((m) => m.t === "you").pop()?.name === "alice2", "rename mid-game works");
+alice.ws.send(JSON.stringify({ t: "auto" }));
+await sleep(300);
+check(alice.closed === null, "autopilot request (menu open) is accepted");
 check(alice.ticks >= 45 && alice.ticks <= 75, `tick rate ~20/s (${alice.ticks} in 3s)`);
 check(alice.json.some((m) => m.t === "lb" && m.top.length > 0), "leaderboard received");
 check(alice.json.some((m) => m.t === "hello"), "hello received");

@@ -3,7 +3,7 @@
 // client -> server
 //   INPUT  u8 type, u16 angle (0..65535 = 0..2pi), u8 boost
 //   text   "ping" | JSON {t:"join",name?,guest,skin,aspect} | {t:"name",name,guest}
-//          | {t:"view",aspect}
+//          | {t:"view",aspect} | {t:"auto"} (autopilot while a menu is open)
 //
 // server -> client
 //   TICK   u8 type, u32 tick, u16 myId, f32 camX, f32 camY,

@@ -72,8 +72,11 @@ ui.onSponsor = () => void sponsorPanel?.show();
 ui.shareUrl = `${location.origin}/r/${room}`;
 
 const net = new Net(room);
+// #shot: spectate only with no UI, for capturing the preview card image.
+const shot = location.hash === "#shot";
+if (shot) document.body.classList.add("shot");
 let playing = false;
-let wantJoin = true;
+let wantJoin = !shot;
 let myName = "";
 let W = 1, H = 1, DPR = 1;
 
@@ -229,8 +232,14 @@ function drawSnake(s: CSnake, alpha: number, isMe: boolean): void {
 }
 
 let lastError = "";
+let menuWasOpen = false;
 
 function frame(): void {
+  // Card capture can hold the current frame (shot mode only).
+  if (shot && (window as unknown as { __freeze?: boolean }).__freeze) {
+    requestAnimationFrame(frame);
+    return;
+  }
   try {
     draw();
   } catch (e) {
@@ -248,7 +257,12 @@ function draw(): void {
   last = now;
 
   input.update(dt);
-  if (playing && input.touched) net.input(input.angle, input.boost, now);
+  // While the name editor or sponsor panel is open, the server autopilots
+  // the snake; steering resumes (and takes over) once the menu closes.
+  const menuOpen = ui.editing || !!sponsorPanel?.open;
+  if (menuOpen && !menuWasOpen && playing) net.send({ t: "auto" });
+  menuWasOpen = menuOpen;
+  if (playing && input.touched && !menuOpen) net.input(input.angle, input.boost, now);
   ui.showHint(playing && !input.touched && !ui.editing && !sponsorPanel?.open);
 
   const alpha = state.lastAt ? Math.min(1, (now - state.lastAt) / state.interval) : 1;
@@ -265,7 +279,7 @@ function draw(): void {
     camX += (state.camX - camX) * k;
     camY += (state.camY - camY) * k;
   }
-  const focusMass = me ? me.mass : hud.top[0]?.m ?? 200;
+  const focusMass = me ? me.mass : shot ? 140 : hud.top[0]?.m ?? 200;
   const targetScale = Math.min(W, H) / 2 / viewHalfOf(focusMass);
   scaleCss += (targetScale - scaleCss) * (1 - Math.exp(-dt * 3));
   const scale = scaleCss * DPR;
@@ -319,4 +333,7 @@ function draw(): void {
 requestAnimationFrame(frame);
 
 // Playtest/debug handle.
-(window as unknown as { __snek: object }).__snek = { net, state, input, ui };
+(window as unknown as { __snek: object }).__snek = {
+  net, state, input, ui,
+  view: () => ({ camX, camY, scale: scaleCss, W, H }),
+};

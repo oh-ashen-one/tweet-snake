@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Card capture</title>
+<style>
+  /* Layout used to capture public/card.png (the X preview image). */
+  html, body { margin: 0; background: #000; }
+  .card { position: relative; width: 1604px; height: 840px; overflow: hidden; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif; }
+  iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,6,12,.88) 0%, rgba(5,6,12,.55) 38%, rgba(5,6,12,0) 62%); pointer-events: none; }
+  .copy { position: absolute; left: 90px; top: 50%; transform: translateY(-50%); color: #fff; pointer-events: none; }
+  .logo { font-size: 185px; font-weight: 900; letter-spacing: -6px; line-height: .9; background: linear-gradient(135deg, #ff5a7a, #ffd34d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { margin-top: 26px; font-size: 48px; font-weight: 800; line-height: 1.15; }
+  .sub { margin-top: 20px; font-size: 31px; font-weight: 700; color: rgba(255,255,255,.7); }
+  .pill { display: inline-block; margin-top: 36px; padding: 17px 31px; border-radius: 999px; background: #fff; color: #0b0d14; font-size: 31px; font-weight: 900; }
+</style>
+</head>
+<body>
+<div class="card">
+  <iframe src="/play/main#shot"></iframe>
+  <div class="shade"></div>
+  <div class="copy">
+    <div class="logo">SNEK</div>
+    <div class="tag">Multiplayer snake,<br>right inside the post</div>
+    <div class="sub">Everyone who opens it plays together</div>
+    <div class="pill">▶ Tap to play</div>
+  </div>
+</div>
+</body>
+</html>
